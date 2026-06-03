@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html><head><title>Warehouse Exception Workflow</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<h1>Warehouse Exception Workflow</h1>
+<form id="form">
+<input id="orderId" placeholder="Order ID" required>
+<input id="sku" placeholder="SKU" required>
+<select id="type"><option>Damaged Item</option><option>Missing Item</option><option>Wrong Item</option></select>
+<select id="priority"><option>Low</option><option>Medium</option><option>High</option></select>
+<button>Submit</button>
+</form>
+<table><thead><tr><th>Ticket</th><th>Order</th><th>Status</th></tr></thead><tbody id="tickets"></tbody></table>
+<script src="app.js"></script>
+</body></html>
