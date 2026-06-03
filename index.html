@@ -1,15 +1,305 @@
 <!DOCTYPE html>
-<html><head><title>Warehouse Exception Workflow</title>
-<link rel="stylesheet" href="style.css"></head>
-<body>
-<h1>Warehouse Exception Workflow</h1>
-<form id="form">
-<input id="orderId" placeholder="Order ID" required>
-<input id="sku" placeholder="SKU" required>
-<select id="type"><option>Damaged Item</option><option>Missing Item</option><option>Wrong Item</option></select>
-<select id="priority"><option>Low</option><option>Medium</option><option>High</option></select>
-<button>Submit</button>
-</form>
-<table><thead><tr><th>Ticket</th><th>Order</th><th>Status</th></tr></thead><tbody id="tickets"></tbody></table>
-<script src="app.js"></script>
-</body></html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PharmaTrack Pro - Advanced Warehouse Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+
+    <header class="bg-emerald-700 text-white shadow-md px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-mortar-pestle text-2xl text-emerald-200"></i>
+            <h1 class="text-xl font-bold tracking-wide">PharmaTrack Pro</h1>
+        </div>
+        <span class="bg-emerald-800 px-3 py-1 rounded text-xs font-semibold uppercase tracking-wider text-emerald-200">Lecture Demonstration Version</span>
+    </header>
+
+    <div class="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 gap-6">
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-400 font-bold uppercase">Total Inventory Items</p>
+                    <h3 id="total-count" class="text-2xl font-bold text-gray-800 mt-1">0</h3>
+                </div>
+                <div class="bg-blue-50 p-3 rounded-lg text-blue-500"><i class="fa-solid fa-boxes-stacked text-xl"></i></div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-400 font-bold uppercase">Available Stock</p>
+                    <h3 id="available-count" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
+                </div>
+                <div class="bg-emerald-50 p-3 rounded-lg text-emerald-500"><i class="fa-solid fa-circle-check text-xl"></i></div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between border-l-4 border-l-red-500">
+                <div>
+                    <p class="text-xs text-gray-400 font-bold uppercase">Quarantined / Exceptions</p>
+                    <h3 id="quarantine-count" class="text-2xl font-bold text-red-600 mt-1">0</h3>
+                </div>
+                <div class="bg-red-50 p-3 rounded-lg text-red-500"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="space-y-6">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-sm font-bold uppercase text-gray-500 mb-4 flex items-center"><i class="fa-solid fa-plus-circle mr-2 text-emerald-600"></i> Log Incoming Batch</h2>
+                    <form id="add-med-form" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Medication Name</label>
+                            <input type="text" id="med-name" placeholder="e.g., Amoxicillin 500mg" class="w-full text-sm border p-2 rounded focus:outline-emerald-600" required>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Batch Number</label>
+                                <input type="text" id="med-batch" placeholder="AMX-908" class="w-full text-sm border p-2 rounded focus:outline-emerald-600" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Quantity (Boxes)</label>
+                                <input type="number" id="med-qty" placeholder="100" class="w-full text-sm border p-2 rounded focus:outline-emerald-600" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Initial Storage State</label>
+                            <select id="med-status" class="w-full text-sm border p-2 rounded bg-gray-50">
+                                <option value="AVAILABLE">Passed Inspection (Available)</option>
+                                <option value="QUARANTINED">Failed Intake (Quarantine Exception)</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-2 rounded shadow transition">Add to Stock Manifest</button>
+                    </form>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-3">
+                    <h2 class="text-sm font-bold uppercase text-gray-500 flex items-center"><i class="fa-solid fa-gears mr-2 text-gray-600"></i> Management Tools</h2>
+                    <button onclick="exportToCSV()" class="w-full bg-slate-700 hover:bg-slate-800 text-white font-semibold text-sm py-2 rounded shadow transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span>Export Live Stock (.CSV)</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-4">
+                
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                        <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                    </span>
+                    <input type="text" id="search-bar" onkeyup="filterInventory()" placeholder="Search active digital inventory by medication name or batch ID..." class="w-full text-sm border pl-10 pr-4 py-3 rounded-xl shadow-sm focus:outline-emerald-600 bg-white">
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
+                        <h2 class="text-sm font-bold uppercase text-gray-600 tracking-wider">Live Pharmacy Stock Manifest</h2>
+                        <span class="text-xs text-emerald-600 font-semibold flex items-center"><span class="h-2 w-2 bg-emerald-500 rounded-full inline-block mr-1.5 animate-pulse"></span>System Engine Online</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-100 text-gray-500 text-xs font-bold uppercase border-b">
+                                    <th class="p-3">Medication Details</th>
+                                    <th class="p-3">Batch ID</th>
+                                    <th class="p-3 text-center">In-Stock Qty</th>
+                                    <th class="p-3">Status Flag</th>
+                                    <th class="p-3 text-right">Exception Protocol</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table-body" class="divide-y text-sm">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 rounded-xl p-4 shadow-md border border-slate-800">
+            <div class="flex justify-between items-center mb-2 border-b border-slate-800 pb-2">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400"><i class="fa-solid fa-clock-rotate-left mr-1 text-amber-400"></i> Real-time Warehouse Audit History Log</h3>
+                <span class="text-[10px] text-slate-500 font-mono">Security Chain Tracking Active</span>
+            </div>
+            <div id="audit-log-box" class="h-28 overflow-y-auto font-mono text-xs text-slate-300 space-y-1.5 scrollbar-thin">
+                </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Seed database state array simulation 
+        let inventoryDatabase = [
+            { id: 1, name: "Amoxicillin 500mg Caps", batch: "AMX-2026-04", qty: 150, status: "AVAILABLE" },
+            { id: 2, name: "Insulin Glargine Vials", batch: "INS-2026-11", qty: 40, status: "QUARANTINED" },
+            { id: 3, name: "Paracetamol 500mg Tabs", batch: "PAR-2025-09", qty: 500, status: "AVAILABLE" },
+            { id: 4, name: "Lipitor 20mg Tablets", batch: "LIP-2026-02", qty: 85, status: "AVAILABLE" }
+        ];
+
+        // NEW AUDIO NOTIFICATION CORE: Creates dynamic frequency beeps without audio assets
+        function playSystemBeep(isWarning) {
+            try {
+                let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                if (isWarning) {
+                    // Dramatic multi-tone siren pattern for errors/quarantine
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(493.88, audioCtx.currentTime); // Note B4
+                    osc.frequency.setValueAtTime(329.63, audioCtx.currentTime + 0.12); // Note E4
+                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.25);
+                } else {
+                    // Soft high-pitch confirmations for regular completions
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime); // Note A5
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.1);
+                }
+            } catch(e) { console.log("Audio contexts blocked by vendor autoplay safety constraints"); }
+        }
+
+        // NEW LOGGING SYSTEM: Records state changes directly to the console widget at layout footer
+        function appendAuditTrail(text) {
+            const logBox = document.getElementById("audit-log-box");
+            const timeStamp = new Date().toLocaleTimeString();
+            const logLine = <p class="border-l-2 border-slate-700 pl-2"><span class="text-slate-500">[${timeStamp}]</span> ${text}</p>;
+            logBox.insertAdjacentHTML("afterbegin", logLine); // Appends to top of stream
+        }
+
+        // Refreshes the display view layers and metrics metrics
+        function updateUIManifest() {
+            const tableBody = document.getElementById("inventory-table-body");
+            tableBody.innerHTML = "";
+
+            let totalItems = 0;
+            let availableCount = 0;
+            let quarantineCount = 0;
+
+            inventoryDatabase.forEach(item => {
+                totalItems += Number(item.qty);
+                if (item.status === "AVAILABLE") availableCount += Number(item.qty);
+                if (item.status === "QUARANTINED") quarantineCount += Number(item.qty);
+
+                const statusBadge = item.status === "AVAILABLE" 
+                    ? <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded-full"><i class="fa-solid fa-circle-check mr-1"></i>Available</span>
+                    : <span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded-full"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Quarantined</span>;
+
+                const actionButton = item.status === "AVAILABLE"
+                    ? <button onclick="triggerException(${item.id})" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-2 py-1 rounded shadow-sm transition flex items-center space-x-1 ml-auto"><i class="fa-solid fa-triangle-exclamation"></i><span>Flag Exception</span></button>
+                    : <button onclick="resolveException(${item.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-2 py-1 rounded shadow-sm transition flex items-center space-x-1 ml-auto"><i class="fa-solid fa-check"></i><span>Clear & Release</span></button>;
+
+                const rowTemplate = `
+                    <tr class="hover:bg-gray-50 transition border-b">
+                        <td class="p-3 font-semibold text-gray-700">${item.name}</td>
+                        <td class="p-3 text-xs font-mono font-bold text-gray-500">${item.batch}</td>
+                        <td class="p-3 text-center font-bold">${item.qty}</td>
+                        <td class="p-3">${statusBadge}</td>
+                        <td class="p-3 text-right">${actionButton}</td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML("beforeend", rowTemplate);
+            });
+
+            document.getElementById("total-count").innerText = totalItems;
+            document.getElementById("available-count").innerText = availableCount;
+            document.getElementById("quarantine-count").innerText = quarantineCount;
+        }
+
+        // Trigger warehouse exception workflow
+        function triggerException(itemId) {
+            const confirmed = confirm("EXCEPTION TRIGGER: Quarantine this batch due to warehouse issues (e.g. cold-chain temperature failure or broken seals)?");
+            if (confirmed) {
+                const searchItem = inventoryDatabase.find(i => i.id === itemId);
+                if (searchItem) {
+                    searchItem.status = "QUARANTINED";
+                    playSystemBeep(true); // Alert warning ring
+                    appendAuditTrail(<span class="text-red-400 font-bold">⚠️ EXCEPTION:</span> Batch <span class="text-amber-300">${searchItem.batch}</span> (${searchItem.name}) has been quarantined.);
+                    updateUIManifest();
+                }
+            }
+        }
+
+        // Clear and resolve warehouse exception
+        function resolveException(itemId) {
+            const confirmed = confirm("RESOLUTION MANAGEMENT: Confirm QA inspection is complete and items are cleared for redistribution?");
+            if (confirmed) {
+                const searchItem = inventoryDatabase.find(i => i.id === itemId);
+                if (searchItem) {
+                    searchItem.status = "AVAILABLE";
+                    playSystemBeep(false); // Success tone chime
+                    appendAuditTrail(<span class="text-emerald-400 font-bold">✅ RESOLVED:</span> Batch <span class="text-emerald-300">${searchItem.batch}</span> released back into available stock listings.);
+                    updateUIManifest();
+                }
+            }
+        }
+
+        // Add new batch form submit controller
+        document.getElementById("add-med-form").addEventListener("submit", function(e) {
+            e.preventDefault();
+            
+            const nameInput = document.getElementById("med-name").value;
+            const batchInput = document.getElementById("med-batch").value;
+            const qtyInput = document.getElementById("med-qty").value;
+            const statusInput = document.getElementById("med-status").value;
+
+            const targetObject = {
+                id: Date.now(),
+                name: nameInput,
+                batch: batchInput,
+                qty: parseInt(qtyInput),
+                status: statusInput
+            };
+
+            inventoryDatabase.unshift(targetObject);
+            playSystemBeep(false);
+            appendAuditTrail(<span class="text-blue-400 font-bold">📥 INTAKE:</span> Logged new batch <span class="text-slate-200">${batchInput}</span> [${qtyInput} boxes] as ${statusInput}.);
+            updateUIManifest();
+            document.getElementById("add-med-form").reset();
+        });
+
+        // NEW FILTER ENGINE: Live data processing updates instantly on keyboard typing events
+        function filterInventory() {
+            let filter = document.getElementById('search-bar').value.toUpperCase();
+            let rows = document.getElementById('inventory-table-body').getElementsByTagName('tr');
+            
+            for (let i = 0; i < rows.length; i++) {
+                let nameCell = rows[i].getElementsByTagName('td')[0];
+                let batchCell = rows[i].getElementsByTagName('td')[1];
+                if (nameCell || batchCell) {
+                    let textValue = (nameCell.textContent || nameCell.innerText) + " " + (batchCell.textContent || batchCell.innerText);
+                    rows[i].style.display = textValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+                }
+            }
+        }
+
+        // NEW EXPORT MODULE: Assembles structural text dynamically into download spreadsheet elements
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,Medicine Name,Batch ID,Quantity,Status\n";
+            inventoryDatabase.forEach(item => {
+                csvContent += "${item.name}","${item.batch}",${item.qty},"${item.status}"\n;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "PharmaTrack_Inventory_Report.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            appendAuditTrail(<span class="text-purple-400 font-bold">📊 REPORT:</span> Entire stock manifest exported to standalone .CSV spreadsheet download.);
+        }
+
+        // Initialize system state vectors
+        window.onload = function() {
+            updateUIManifest();
+            appendAuditTrail("System architecture framework initialized. Standing by for intake protocols...");
+        };
+    </script>
+</body>
+</html>
